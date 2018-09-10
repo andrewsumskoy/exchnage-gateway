@@ -12,6 +12,7 @@ object protocol {
 
   final case class Subscribe(exchange: String, pair: String) extends Income
   final case class UnSubscribe(exchange: String, pair: String) extends Income
+  final case class Auth(key: String) extends Income
 
   final case class FullOrderBook(exchange: String, pair: String, o: OrderBook) extends Outgoing
   final case class DiffOrderBook(exchange: String, pair: String, o: OrderBookDiff) extends Outgoing
@@ -28,6 +29,9 @@ object protocol {
       if (s.size == 2) {
         Some(UnSubscribe(s.head, s.last))
       } else None
+    } else if (cmd.startsWith("A ")) {
+      val s = cmd.substring(2)
+      Some(Auth(s))
     } else None
   }
 

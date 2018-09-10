@@ -20,6 +20,7 @@ class TcpClientActor(connection: ActorRef, remote: InetSocketAddress) extends Ac
 
   import TcpClientActor._
   import akka.io.Tcp._
+  val authKey = context.system.settings.config.getString("exchange-gateway.server.tcp.auth.key")
 
   val provider = OrderBookProvider(context.system)
 
@@ -32,6 +33,7 @@ class TcpClientActor(connection: ActorRef, remote: InetSocketAddress) extends Ac
   val maxWriteSize: Int = 1024 * 1024
   val writeChunkSize: Int = 16 * 1024
 
+  var inAuth = false
   var firstData = Map.empty[(String, String), Boolean]
 
   def receive = {
@@ -54,11 +56,13 @@ class TcpClientActor(connection: ActorRef, remote: InetSocketAddress) extends Ac
   }
 
   def onCommand(cmd: ByteString): Unit = protocol.parse(cmd) match {
-    case Some(protocol.Subscribe(ex, pair)) => provider.subscribe(ex, pair, self)
-    case Some(protocol.UnSubscribe(ex, pair)) =>
+    case Some(protocol.Subscribe(ex, pair)) if inAuth => provider.subscribe(ex, pair, self)
+    case Some(protocol.UnSubscribe(ex, pair)) if inAuth =>
       provider.unsubscribe(ex, pair, self)
       firstData += (ex, pair) -> true
-    case _ =>
+    case Some(protocol.Auth(key)) if key == authKey => inAuth = true
+    case Some(_) =>
+    case None =>
       log.warning(s"Unknown income command ${cmd.utf8String} from $remote")
   }
 
