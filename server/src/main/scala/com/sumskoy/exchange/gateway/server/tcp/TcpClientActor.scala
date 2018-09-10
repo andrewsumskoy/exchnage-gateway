@@ -88,7 +88,7 @@ class TcpClientActor(connection: ActorRef, remote: InetSocketAddress) extends Ac
     val delimeter = buffer.indexOf(RN.head, from = readPrev)
     if (delimeter == -1) {
       readPrev = buffer.size
-    } else if (delimeter + 1 > buffer.size) {
+    } else if (delimeter + RN.size > buffer.size) {
       // not enough bytes
     } else if (buffer.slice(delimeter, delimeter + RN.size) == RN) {
       val income = buffer.slice(0, delimeter)
